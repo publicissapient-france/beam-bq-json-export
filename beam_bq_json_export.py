@@ -1,14 +1,16 @@
 import argparse
 import logging
-import re
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
+
 
 def dict_without_keys(d, forbidden_keys):
         return {x: d[x] for x in d if x not in forbidden_keys}
 
+
 def set_keys(element):
         return (element["file_name"], str(dict_without_keys(element, ["file_name"])))
+
 
 class WindowedWritesFn(beam.DoFn):
     """
@@ -63,7 +65,7 @@ def run(argv=None):
     p = beam.Pipeline(options=PipelineOptions(pipeline_args))
 
     (p
-     | 'ReadTable' >> beam.io.Read(beam.io.BigQuerySource(known_args.input))
+     | 'ReadTable' >> beam.io.gcp.bigquery.ReadFromBigQuery(table=known_args.input)
      | "SetKeys" >> beam.Map(lambda s: set_keys(s))
      | "Grouping keys" >> beam.GroupByKey()
      | 'Windowed Writes' >> beam.ParDo(WindowedWritesFn(known_args.output)))
