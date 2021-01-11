@@ -17,26 +17,10 @@ source venv/bin/activate
 # Use quotation marks for zsh mac
 pip3 install "apache-beam[gcp]"
 
-# Run wordcount example
-# python -m wordcount --input ./data/miserables.txt --output ./outputs/part --runner DirectRunner
-
-# Run pardo / map example
-# python -m pardomap_example --input ./data/dates.csv --output ./outputs/pardomap_example --runner DirectRunner
-
-python ./beam_bq_json_export.py --project="${PROJECT_ID}" --region=europe-west1 --runner=DirectRunner \
---input="${PROJECT_ID}:${EXPORT_DATASET}.${EXPORT_TABLE}" \
---staging_location=gs://$EXPORT_BUCKET/test --temp_location gs://$EXPORT_BUCKET/test \
---output=gs://$EXPORT_BUCKET
-
-python ./beam_bq_json_export.py --project="${PROJECT_ID}" --region=europe-west1 --runner=DirectRunner \
---input="${PROJECT_ID}:${EXPORT_DATASET}.${EXPORT_TABLE}" \
---staging_location=gs://$EXPORT_BUCKET/test --temp_location gs://$EXPORT_BUCKET/test \
---output=gs://$EXPORT_BUCKET --save_main_session True
-
 python ./beam_bq_json_export.py --project="${PROJECT_ID}" --region=europe-west1 --runner=DataFlow \
 --input="${PROJECT_ID}:${EXPORT_DATASET}.${EXPORT_TABLE}" \
 --staging_location=gs://$EXPORT_BUCKET/test --temp_location gs://$EXPORT_BUCKET/test \
 --output=gs://$EXPORT_BUCKET --save_main_session True \
 --serviceAccount=beam-bq-json-export@beam-bq-json-export.iam.gserviceaccount.com
-deactivate
 
+deactivate

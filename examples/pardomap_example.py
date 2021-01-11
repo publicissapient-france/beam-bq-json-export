@@ -10,7 +10,6 @@ from apache_beam.options.pipeline_options import PipelineOptions
 
 
 def run(argv=None):
-  """Main entry point; defines and runs the wordcount pipeline."""
 
   parser = argparse.ArgumentParser()
   parser.add_argument(
@@ -27,6 +26,7 @@ def run(argv=None):
 
   pipeline_options = PipelineOptions(pipeline_args)
 
+  # Naive pardo
   with beam.Pipeline(options=pipeline_options) as p:
 
       class DateExtractor(beam.DoFn):
@@ -34,18 +34,19 @@ def run(argv=None):
               return (str(data_item).split(','))[0]
 
       (p
-      | 'ReadMyFile 01' >> ReadFromText('./data/dates.csv')
+      | 'ReadMyFile' >> ReadFromText('./data/dates.csv')
       | 'Splitter using beam.ParDo 01' >> beam.ParDo(DateExtractor())
       | 'Output' >> WriteToText(known_args.output + "_pardo"))
 
+  # Good result with map
   with beam.Pipeline(options=pipeline_options) as p:
 
       (p
-       | 'ReadMyFile 02' >> ReadFromText('./data/dates.csv')
-       | 'Splitter using beam.Map 02' >> beam.Map(lambda record: (record.split(','))[0])
+       | 'ReadMyFile' >> ReadFromText('./data/dates.csv')
+       | 'Splitter using beam.Map' >> beam.Map(lambda record: (record.split(','))[0])
        | 'Output' >> WriteToText(known_args.output + "_map")
        )
-
+  # Fix pardo
   with beam.Pipeline(options=pipeline_options) as p:
 
       class DateExtractorCorrected(beam.DoFn):
@@ -53,8 +54,8 @@ def run(argv=None):
               return [(str(data_item).split(','))[0]]
 
       (p
-      | 'ReadMyFile 01' >> ReadFromText('./data/dates.csv')
-      | 'Splitter using beam.ParDo 01' >> beam.ParDo(DateExtractorCorrected())
+      | 'ReadMyFile' >> ReadFromText('./data/dates.csv')
+      | 'Splitter using beam.ParDo 02' >> beam.ParDo(DateExtractorCorrected())
       | 'Output' >> WriteToText(known_args.output + "_pardo_corrected"))
 
 

@@ -28,32 +28,23 @@ def run(argv=None):
       help='Output file to write results to.')
   known_args, pipeline_args = parser.parse_known_args(argv)
 
-  pipeline_options = PipelineOptions(pipeline_args)
+  with beam.Pipeline(options=PipelineOptions(pipeline_args)) as p:
 
-  with beam.Pipeline(options=pipeline_options) as p:
-
-    # Read the text file[pattern] into a PCollection.
-    # Each line is an element of the PCollection.
-    lines = p | ReadFromText(known_args.input)
-
-    # Count the occurrences of each word.
-    counts = (
-        lines
-        | 'Split' >> (
-            beam.FlatMap(lambda x: re.findall(r'[A-Za-z\']+', x)).
-            with_output_types(unicode))
-        | 'PairWithOne' >> beam.Map(lambda x: (x, 1))
-        | 'GroupAndSum' >> beam.CombinePerKey(sum))
-
-    # Format the counts into a PCollection of strings.
     def format_result(word_count):
       (word, count) = word_count
       return '%s: %s' % (word, count)
 
-    output = counts | 'Format' >> beam.Map(format_result)
-
-    # Write the output using a "Write" transform that has side effects.
-    output | WriteToText(known_args.output)
+    (p
+     # Read the text file into a PCollection with each line being an element of the PCollection.
+     | 'ReadText' >> ReadFromText(known_args.input)
+     | 'Split' >> (beam.FlatMap(lambda x: re.findall(r'[A-Za-z\']+', x)).with_output_types(unicode))
+     # Associate each word with a count of 1
+     | 'PairWithOne' >> beam.Map(lambda x: (x, 1))
+     # Count the occurrences of each word.
+     | 'GroupAndSum' >> beam.CombinePerKey(sum)
+     | 'Format' >> beam.Map(format_result)
+     | 'WriteText' >> WriteToText(known_args.output)
+     )
 
 
 if __name__ == '__main__':

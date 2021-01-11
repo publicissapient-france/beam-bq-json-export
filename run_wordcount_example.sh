@@ -1,0 +1,1 @@
+python -m examples.wordcount --input ./data/miserables.txt --output ./outputs/wordcount --runner DirectRunner
