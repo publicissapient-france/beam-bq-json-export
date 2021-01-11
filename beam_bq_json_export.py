@@ -1,6 +1,7 @@
 import argparse
 import logging
 import apache_beam as beam
+from apache_beam.options.pipeline_options import PipelineOptions
 
 
 def run(argv=None):
@@ -23,13 +24,15 @@ def run(argv=None):
     # Initiate the pipeline using the pipeline arguments passed in from the
     # command line. This includes information such as the project ID and
     # where Dataflow should store temp files.
-    with beam.Pipeline(options=pipeline_args) as p:
+    with beam.Pipeline(options=PipelineOptions(pipeline_args)) as p:
 
         def dict_without_keys(d, forbidden_keys):
             return {x: d[x] for x in d if x not in forbidden_keys}
 
+
         def set_keys(element):
             return (element["file_name"], str(dict_without_keys(element, ["file_name"])))
+
 
         class WindowedWritesFn(beam.DoFn):
             """
@@ -61,6 +64,7 @@ def run(argv=None):
                     writer.write(first_line.encode("utf-8"))
 
                 writer.close()
+
 
         (p
          | 'ReadTable' >> beam.io.gcp.bigquery.ReadFromBigQuery(table=known_args.input)
