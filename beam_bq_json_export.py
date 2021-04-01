@@ -2,6 +2,7 @@ import argparse
 import logging
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
+from apache_beam.io.filesystems import FileSystems
 
 
 def run(argv=None):
@@ -30,8 +31,18 @@ def run(argv=None):
             return {x: d[x] for x in d if x not in forbidden_keys}
 
 
-        def set_keys(element):
-            return (element["file_name"], str(dict_without_keys(element, ["file_name"])))
+        def set_keys(row):
+            """
+            ex:
+            >>> row = {"start_station_id": 351,
+                       "end_station_id": 340,
+                       "start_date": "2021-01-11",
+                       "file_name"="2021-01-11/351_000"}
+
+            >>> set_keys(row)
+            ("2021-01-11/351_000", '{"start_station_id": 351, "end_station_id": 340, "start_date": "2021-01-11"}')
+            """
+            return (row["file_name"], str(dict_without_keys(row, ["file_name"])))
 
 
         class WindowedWritesFn(beam.DoFn):
@@ -44,26 +55,12 @@ def run(argv=None):
                 self.outdir = outdir
 
             def process(self, element):
-                (file_name, elements) = element
-                elements = list(elements)
+                (file_name, rows) = element
+                rows = list(rows)
 
-                writer = beam.io.filesystems.FileSystems.create(self.outdir + "/{}.json".format(file_name),
-                                                                mime_type="text/plain")
-                if len(elements) > 1:
-                    first_line = "[" + str(elements[0]) + ",\n"
-                    writer.write(first_line.encode("utf-8"))
-
-                    for row in elements[1:-1]:
-                        line = str(row) + ",\n"
-                        writer.write(line.encode("utf-8"))
-
-                    last_line = str(elements[-1]) + "]"
-                    writer.write(last_line.encode("utf-8"))
-                elif len(elements) == 1:
-                    first_line = "[" + str(elements[0]) + "]"
-                    writer.write(first_line.encode("utf-8"))
-
-                writer.close()
+                with FileSystems.create(self.outdir + "/{}.json".format(file_name), mime_type="text/plain") as writer:
+                    file_content = "[" + ",\n".join(rows) + "]"
+                    writer.write(file_content.encode("utf-8"))
 
 
         (p
